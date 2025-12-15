@@ -1,0 +1,85 @@
+DROP DATABASE senior_job_db;
+
+CREATE DATABASE IF NOT EXISTS senior_job_db;
+USE senior_job_db;
+
+-- 1. 시니어 테이블
+CREATE TABLE seniors (
+    senior_id VARCHAR(255) PRIMARY KEY,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    birth_date DATE,
+    gender VARCHAR(10),
+    address VARCHAR(255),
+    restricted_activities TEXT,
+    employment_type VARCHAR(50),
+    location VARCHAR(255),
+    work_days VARCHAR(50),
+    work_hours VARCHAR(50),
+    work_period VARCHAR(50)
+) DEFAULT CHARSET=utf8mb4;  -- 한글 깨짐 방지
+
+-- 2. 기업 테이블
+CREATE TABLE company (
+    company_id VARCHAR(255) PRIMARY KEY,
+    company_pw VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    business_number VARCHAR(255),
+    address VARCHAR(255),
+    phone VARCHAR(20)
+) DEFAULT CHARSET=utf8mb4;
+
+-- 3. 정부 테이블
+CREATE TABLE government (
+    gov_id VARCHAR(255) PRIMARY KEY,
+    gov_password VARCHAR(255) NOT NULL,
+    name VARCHAR(100),
+    tel VARCHAR(20),
+    department VARCHAR(100),
+    email VARCHAR(255)
+) DEFAULT CHARSET=utf8mb4;
+
+-- 4. 공고 테이블
+CREATE TABLE jobposting (
+    job_id INT AUTO_INCREMENT PRIMARY KEY,
+    job_title VARCHAR(255),
+    job_description TEXT,
+    location VARCHAR(255),
+    employment_type VARCHAR(50),
+    work_days VARCHAR(50),
+    work_hours VARCHAR(50),
+    work_period VARCHAR(50),
+    wage_type VARCHAR(20),
+    wage_amount INT,
+    posted_at DATE DEFAULT (CURRENT_DATE),
+    deadline_date DATE,
+    status_name VARCHAR(50) DEFAULT 'pending_approval',
+    company_id VARCHAR(255),
+    gov_id VARCHAR(255),
+    FOREIGN KEY (company_id) REFERENCES company(company_id),
+    FOREIGN KEY (gov_id) REFERENCES government(gov_id)
+) DEFAULT CHARSET=utf8mb4;
+
+-- 5. 지원서 테이블
+CREATE TABLE applications (
+    application_id INT AUTO_INCREMENT PRIMARY KEY,
+    application_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'submitted',
+    notes TEXT,
+    senior_id VARCHAR(255),
+    job_id INT,
+    FOREIGN KEY (senior_id) REFERENCES seniors(senior_id),
+    FOREIGN KEY (job_id) REFERENCES jobposting(job_id)
+) DEFAULT CHARSET=utf8mb4;
+
+-- 6. 이력 테이블
+CREATE TABLE employmenthistory (
+    history_id INT AUTO_INCREMENT PRIMARY KEY,
+    start_date DATE,
+    end_date DATE,
+    status VARCHAR(50) DEFAULT 'active',
+    verified_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    application_id INT,
+    FOREIGN KEY (application_id) REFERENCES applications(application_id)
+) DEFAULT CHARSET=utf8mb4;
