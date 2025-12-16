@@ -34,7 +34,30 @@ export default function SeniorProfile({
     () => applications.filter((a) => a.senior_id === user.id),
     [applications, user.id]
   );
+  // ✅ [수정] 요일 정렬 및 한글 변환 함수
+  const formatDays = (daysString) => {
+    if (!daysString) return "";
 
+    // 1. 순서 정의 (월요일부터 1번 ~ 일요일 7번)
+    const dayOrder = {
+      MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6, SUN: 7
+    };
+
+    // 2. 한글 매핑
+    const dayMap = {
+      MON: "월", TUE: "화", WED: "수", THU: "목",
+      FRI: "금", SAT: "토", SUN: "일"
+    };
+
+    return daysString
+      .split(",")                 // 1. 콤마로 쪼개기 (['MON', 'WED', 'TUE'])
+      .map((d) => d.trim())       // 2. 공백 제거
+      .sort((a, b) => {           // 3. 순서대로 정렬 (월->화->수...)
+         return (dayOrder[a] || 99) - (dayOrder[b] || 99);
+      })
+      .map((d) => dayMap[d] || d) // 4. 한글로 변환
+      .join(", ");                // 5. 다시 문자열로 합치기
+  };
   const myHistories = useMemo(
     () => employmentHistories.filter((h) => h.senior_id === user.id),
     [employmentHistories, user.id]
@@ -454,7 +477,7 @@ export default function SeniorProfile({
                         placeholder="예: 월~금"
                       />
                     ) : (
-                      formatOrDash(profile.work_days)
+                      formatOrDash(formatDays(profile.work_days))
                     )}
                   />
 

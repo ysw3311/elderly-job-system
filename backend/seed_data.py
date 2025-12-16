@@ -1,128 +1,169 @@
-import json
-from datetime import datetime
+from datetime import datetime, timedelta
+import random
 
-# 인자 목록 업데이트: Senior, Company, Government 등
 def init_db(db, Senior, Company, Government, JobPosting, Application, EmploymentHistory):
     
-    # 중복 실행 방지 (정부 계정으로 체크)
+    # 중복 실행 방지
     if Government.query.filter_by(gov_id='gov_admin').first():
-        print("데이터가 이미 존재합니다.")
+        print("🚨 데이터가 이미 존재합니다. 초기화를 원하면 DB 파일을 삭제하거나 drop_all 후 재실행하세요.")
         return
 
-    print("ERD 기반 초기 데이터 생성 중...")
+    print("🚀 시연용 초기 데이터(서울 전역 다양화) 생성 중...")
 
+    # ==========================================
     # 1. 정부 (Government)
+    # ==========================================
     gov = Government(
         gov_id='gov_admin',
-        gov_password='gov123',
-        name='정부 관리자',
-        tel='02-1234-5678',
-        department='노인복지과',
-        email='admin@gov.kr'
+        gov_password='1234',
+        name='서울시 어르신취업지원센터',
+        tel='02-123-4567',
+        department='일자리사업본부',
+        email='admin@seoul.go.kr'
     )
+    db.session.add(gov)
 
-    # 2. 기업 (Company)
-    samsung = Company(
-        company_id='company_samsung',
-        company_pw='comp123',
-        name='삼성전자',
-        business_number='123-45-67890',
-        address='서울 강남구',
-        phone='02-555-5555'
-    )
-
-    hyundai = Company(
-        company_id='company_hyundai',
-        company_pw='comp123',
-        name='현대백화점',
-        business_number='098-76-54321',
-        address='서울 중구',
-        phone='02-333-3333'
-    )
-
-    # 3. 시니어 (Senior)
-    senior_kim = Senior(
-        senior_id='senior_kim',
-        password='senior123',
-        name='김영희',
+    # ==========================================
+    # 2. 시니어 (Senior) - 테스트 계정
+    # ==========================================
+    # (1) 메인 시연용 계정 (강남구 거주)
+    senior_main = Senior(
+        senior_id='senior1',
+        password='1234',
+        name='김철수',
         phone='010-1234-5678',
-        birth_date=datetime.strptime('1955-01-01', '%Y-%m-%d').date(),
-        gender='female',
-        address='서울 강남구',
-        location='서울 강남구', # 희망 근무지
-        employment_type='시간제' # 희망 고용형태
-    )
-
-    senior_park = Senior(
-        senior_id='senior_park',
-        password='senior123',
-        name='박철수',
-        phone='010-9876-5432',
-        birth_date=datetime.strptime('1950-05-05', '%Y-%m-%d').date(),
+        birth_date=datetime.strptime('1955-03-15', '%Y-%m-%d').date(),
         gender='male',
-        address='서울 중구',
-        location='서울 중구',
-        employment_type='일용직'
-    )
-
-    db.session.add_all([gov, samsung, hyundai, senior_kim, senior_park])
-    db.session.commit()
-
-    # 4. 공고 (JobPosting)
-    job1 = JobPosting(
-        company_id=samsung.company_id,
-        job_title='시설 관리 보조',
-        job_description='사무실 환경 관리 및 간단한 시설 점검 업무',
-        location='서울 강남구',
-        employment_type='시간제',
-        wage_amount=12000,
-        work_days='월, 수, 금',
+        address='서울 강남구 삼성동 123',
+        location='서울 강남구', # 희망 근무지
+        employment_type='both',
+        work_days='MON,WED,FRI',
         work_hours='09:00-13:00',
-        work_period='6개월',
-        status_name='approved',
-        deadline_date=datetime.strptime('2025-12-15', '%Y-%m-%d').date(),
-        gov_id=gov.gov_id # 승인한 공무원 ID
+        work_period='6'
     )
 
-    job2 = JobPosting(
-        company_id=hyundai.company_id,
-        job_title='고객 안내 도우미',
-        job_description='매장 내 고객 안내 및 간단한 상담 업무',
-        location='서울 중구',
-        employment_type='시간제',
-        wage_amount=13000,
-        work_days='화, 목',
-        work_hours='10:00-15:00',
-        work_period='3개월',
-        status_name='pending_approval',
-        deadline_date=datetime.strptime('2025-12-20', '%Y-%m-%d').date()
+    # (2) 보조 계정 (마포구 거주 - 비교용)
+    senior_sub = Senior(
+        senior_id='senior2',
+        password='1234',
+        name='이영희',
+        phone='010-9876-5432',
+        birth_date=datetime.strptime('1960-07-20', '%Y-%m-%d').date(),
+        gender='female',
+        address='서울 마포구 망원동 456',
+        location='서울 마포구',
+        employment_type='office'
     )
-
-    db.session.add_all([job1, job2])
+    db.session.add_all([senior_main, senior_sub])
     db.session.commit()
 
-    # 5. 지원 (Application)
-    app1 = Application(
-        job_id=job1.job_id,
-        senior_id=senior_kim.senior_id,
-        status='approved',
-        application_date=datetime.strptime('2025-11-18', '%Y-%m-%d'),
-        notes='경력과 근무조건이 적합함'
-    )
+    # ==========================================
+    # 3. 기업 & 공고 (30개 - 서울 다양한 지역 분포)
+    # ==========================================
+    
+    # (구, 동) 리스트 - 강남구를 포함하되, 다른 지역도 섞음
+    seoul_locations = [
+        ("강남구", "역삼동"), ("강남구", "삼성동"), ("강남구", "청담동"), ("강남구", "논현동"),
+        ("서초구", "서초동"), ("서초구", "양재동"), ("서초구", "반포동"),
+        ("송파구", "잠실동"), ("송파구", "가락동"), ("송파구", "문정동"),
+        ("마포구", "합정동"), ("마포구", "상암동"), ("마포구", "망원동"),
+        ("종로구", "혜화동"), ("종로구", "종로1가"),
+        ("중구", "을지로"), ("중구", "명동"),
+        ("용산구", "이태원동"), ("용산구", "한강로"),
+        ("영등포구", "여의도동"), ("영등포구", "당산동"),
+        ("성동구", "성수동"), ("광진구", "건대입구"),
+        ("강서구", "마곡동"), ("관악구", "신림동")
+    ]
 
-    db.session.add(app1)
+    # 기업 데이터 리스트 (이름, 업종)
+    company_data_list = [
+        ("실버 택배", "물류/배송"), ("행복 요양병원", "의료/간병"), ("스타 카페", "서비스/매장"),
+        ("안전 지킴이", "경비/보안"), ("푸른 조경", "시설/건설"), ("구립 도서관", "공공/행정"),
+        ("우리 마트", "유통/판매"), ("깨끗한 거리 청소", "미화/청소"), ("발렛파킹 서비스", "주차/운전"),
+        ("복지관 강사", "교육/강사"), ("지하철 안내센터", "서비스/안내"), ("빌딩 관리", "시설관리"),
+        ("미술관 안내", "안내/데스크"), ("구내식당", "요리/조리"), ("주유소", "서비스"),
+        ("전통시장 번영회", "기타"), ("전시장 운영보조", "행사보조"), ("지하철 미화", "미화"),
+        ("급식 센터", "배식"), ("숲 체험장", "안전관리"), ("주말 농장", "단순노무"),
+        ("물류 창고", "분류/포장"), ("노인 케어 센터", "보조"), ("보건소", "행정지원"),
+        ("환경 지킴이", "환경정화"), ("아파트 관리소", "시설보조"), ("공원 매표소", "매표/안내"),
+        ("지하상가 관리", "경비"), ("팝업 스토어", "관리"), ("대단지 아파트", "경비")
+    ]
+
+    companies = []
+    jobs = []
+
+    # 30개 생성 루프
+    for i in range(30):
+        # 1. 지역 랜덤 할당 (강남구 비중을 조금 높게 하려면 리스트 조절 가능)
+        gu, dong = seoul_locations[i % len(seoul_locations)]
+        name, sector = company_data_list[i]
+        
+        # 기업명에 지역명 붙여서 그럴싸하게 만들기
+        full_company_name = f"{dong} {name}"
+        comp_id = f"company_{i+1}"
+        
+        comp = Company(
+            company_id=comp_id,
+            company_pw='1234',
+            name=full_company_name,
+            business_number=f"120-81-{10000+i}",
+            address=f"서울 {gu} {dong} 10-{i}번지", # 상세 주소
+            phone=f"02-555-{1000+i}"
+        )
+        db.session.add(comp)
+        companies.append(comp)
+
+        # 2. 공고 생성
+        wage = random.choice([10030, 11000, 12000, 15000, 10500])
+        # 시연을 위해 'field', 'office', 'both' 골고루 섞음
+        emp_type = 'field' if i % 3 == 0 else ('office' if i % 3 == 1 else 'both')
+        
+        # 근무 요일 다양화
+        days_pool = ['MON,WED,FRI', 'TUE,THU', 'MON,TUE,WED,THU,FRI', 'SAT,SUN', 'MON,WED', 'TUE,THU,SAT']
+        
+        job = JobPosting(
+            company_id=comp_id,
+            job_title=f"{gu} {dong} - {sector} 어르신 모집",
+            job_description=f"서울 {gu} {dong} 인근 거주자 우대합니다.\n성실하게 근무해주실 시니어 분을 모십니다.\n주요업무: {sector} 관련 보조 업무",
+            
+            location=f"서울 {gu}", # ✅ 핵심: '서울 강남구', '서울 마포구' 등으로 저장됨
+            
+            employment_type=emp_type,
+            wage_type='시급',
+            wage_amount=wage,
+            work_days=days_pool[i % len(days_pool)],
+            work_hours='09:00-13:00' if i % 2 == 0 else '13:00-18:00',
+            work_period=random.choice(['3개월', '6개월', '12개월']),
+            status_name='approved',
+            deadline_date=(datetime.now() + timedelta(days=30)).date(),
+            gov_id='gov_admin'
+        )
+        db.session.add(job)
+        jobs.append(job)
+
     db.session.commit()
 
-    # 6. 이력 (EmploymentHistory)
-    # 채용 승인된 건에 대해 이력 생성
-    history1 = EmploymentHistory(
-        application_id=app1.application_id,
-        start_date=datetime.strptime('2025-11-20', '%Y-%m-%d').date(),
-        status='active',
-        verified_at=datetime.utcnow()
-    )
+    # ==========================================
+    # 4. 시나리오 데이터 (지원 이력)
+    # ==========================================
+    # senior1(강남구 거주) -> 강남구에 있는 첫 번째 기업(0번 인덱스)에 합격했다고 가정
+    if jobs and jobs[0].location == '서울 강남구':
+        app1 = Application(
+            job_id=jobs[0].job_id,
+            senior_id='senior1',
+            status='approved',
+            application_date=datetime.now() - timedelta(days=10),
+            notes='우수 인재'
+        )
+        db.session.add(app1)
+        db.session.commit()
 
-    db.session.add(history1)
-    db.session.commit()
+        hist1 = EmploymentHistory(
+            application_id=app1.application_id,
+            start_date=(datetime.now() - timedelta(days=5)).date(),
+            status='active',
+            verified_at=datetime.now()
+        )
+        db.session.add(hist1)
 
-    print("초기 데이터 생성 완료!")
+    print("✅ 초기 데이터 생성 완료! (서울 전역 30개 기업)")
